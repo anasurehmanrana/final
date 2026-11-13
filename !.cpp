@@ -7,5 +7,6 @@ int main()
 	//testing
 	cout << "\jaldi.";
 	cout << "\nanas bhai aap bhi.";
+	cout << "yea";
 	return 0;
 }
