@@ -174,3 +174,125 @@ void drawHUD(RenderWindow& window) {
     text.setPosition(Vector2f(15, 10));
     window.draw(text);
 }
+//Member 2 part
+
+
+// work out which rows are roads and store them in laneRows[]
+void setupLanes() {
+    int count = 0;
+    for (int r = 1; r < ROWS - 1; r++) {
+        if (r != MIDDLE_ROW_1 && r != MIDDLE_ROW_2) {
+            laneRows[count] = r;
+            count++;
+        }
+    }
+}
+// make every car slot empty
+void clearCars() {
+    for (int i = 0; i < MAX_CARS; i++) {
+        carActive[i] = false;
+    }
+}
+// add one new car on a random lane
+void spawnCar() {
+    // look for the first empty slot
+    for (int i = 0; i < MAX_CARS; i++) {
+        if (carActive[i] == false) {
+
+            int row = laneRows[rand() % NUM_LANES];
+            carRow[i] = row;
+
+            // cars in the same lane all drive the same way (even rows right, odd rows left)
+            if (row % 2 == 0) {
+                carDir[i] = 1;
+                carX[i] = -CAR_WIDTH; // starts just outside the left edge
+            }
+            else {
+                carDir[i] = -1;
+                carX[i] = WINDOW_WIDTH; // starts just outside the right edge
+            }
+
+            // random speed between 100 and 250, plus more as difficulty grows
+            carSpeed[i] = 100 + rand() % 151 + 50 * difficulty;
+
+            carActive[i] = true;
+            return; // we placed one car, stop looking
+        }
+    }
+}
+
+// gets harder over time and spawns cars when the timer runs out
+void updateSpawning(float dt) {
+    gameTime = gameTime + dt;
+    difficulty = 1.0f + gameTime / 10.0f;
+
+    spawnRate = 1.5f - gameTime / 20.0f;
+    if (spawnRate < 0.3f) {
+        spawnRate = 0.3f; // never faster than one car every 0.3 s
+    }
+
+    spawnTimer = spawnTimer + dt;
+    if (spawnTimer >= spawnRate) {
+        spawnTimer = 0;
+        spawnCar();
+    }
+}
+
+// move every active car and free the ones that left the screen
+void updateCars(float dt) {
+    for (int i = 0; i < MAX_CARS; i++) {
+        if (carActive[i] == true) {
+            carX[i] = carX[i] + carSpeed[i] * carDir[i] * dt;
+
+            if (carDir[i] == 1 && carX[i] > WINDOW_WIDTH) {
+                carActive[i] = false;
+            }
+            if (carDir[i] == -1 && carX[i] < -CAR_WIDTH) {
+                carActive[i] = false;
+            }
+        }
+    }
+}
+
+// true if any car touches the player
+bool checkCollision() {
+    // the player's rectangle (top-left corner + size)
+    float playerLeft = playerCol * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
+    float playerTop = playerRow * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
+
+    for (int i = 0; i < MAX_CARS; i++) {
+        if (carActive[i] == true) {
+            // the car's rectangle
+            float carLeft = carX[i];
+            float carTop = carRow[i] * GRID_SIZE + (GRID_SIZE - CAR_HEIGHT) / 2.0f;
+
+            // two rectangles overlap when they overlap both horizontally AND vertically
+            bool overlapX = playerLeft < carLeft + CAR_WIDTH && playerLeft + PLAYER_SIZE > carLeft;
+            bool overlapY = playerTop < carTop + CAR_HEIGHT && playerTop + PLAYER_SIZE > carTop;
+
+            if (overlapX == true && overlapY == true) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// gray road everywhere, then green grass on the 4 safe rows
+void drawBackground(RenderWindow& window) {
+    window.clear(Color(50, 50, 50));
+
+    Color grass(100, 200, 100);
+    drawRect(window, 0, 0, WINDOW_WIDTH, GRID_SIZE, grass); // top
+    drawRect(window, 0, MIDDLE_ROW_1 * GRID_SIZE, WINDOW_WIDTH, GRID_SIZE * 2, grass); // middle (2 rows)
+    drawRect(window, 0, WINDOW_HEIGHT - GRID_SIZE, WINDOW_WIDTH, GRID_SIZE, grass); // bottom
+}
+
+void drawCars(RenderWindow& window) {
+    for (int i = 0; i < MAX_CARS; i++) {
+        if (carActive[i] == true) {
+            float y = carRow[i] * GRID_SIZE + (GRID_SIZE - CAR_HEIGHT) / 2.0f;
+            drawRect(window, carX[i], y, CAR_WIDTH, CAR_HEIGHT, Color::Red);
+        }
+    }
+}
