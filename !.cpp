@@ -79,8 +79,7 @@ void drawCenteredText(RenderWindow& window, string words, int size, float y, Col
     window.draw(text);
 }
 /*
-    MEMBER 1: PLAYER, SCORE, HIGH SCORE FILE, PLAYER + HUD DRAWING
-
+    PLAYER, SCORE, HIGH SCORE FILE, PLAYER + HUD DRAWING
     What to explain:
      - the player is just two numbers: playerCol and playerRow
      - movePlayer changes them and uses if statements to stay inside the grid
@@ -176,8 +175,6 @@ void drawHUD(RenderWindow& window) {
     text.setPosition(Vector2f(15, 10));
     window.draw(text);
 }
-//Member 2 part
-
 
 // work out which rows are roads and store them in laneRows[]
 void setupLanes() {
@@ -300,32 +297,21 @@ void drawCars(RenderWindow& window) {
 }
 
 /*
-    LANE DASHER - Mid Evaluation (Group 5)
-    SFML 3
+    SCREENS, GAME FLOW, KEY INPUT AND THE MAIN LOOP
 
-    MEMBER 3: SCREENS, GAME FLOW, KEY INPUT AND THE MAIN LOOP
-
-    The idea: a frog (green square) has to cross roads full of cars.
+    The idea: a (green square) has to cross roads full of cars.
     Cars spawn faster and move faster the longer you survive.
     One hit = game over. The best score is saved in highscore.txt.
 
     Controls: arrow keys or W A S D to move, P to pause (only on grass),
               Enter or Space to play again after game over.
 
-    What to explain:
      - every frame: read keys -> update the game -> draw everything
      - draw functions only draw, they never change the game
      - gameState decides which screen we see (playing or game over)
-     - main() just connects Member 1's and Member 2's parts
-
-    Compile only this file (the .h files are included automatically).
 */
 
-#include "shared.h"
-#include "member1_player.h"
-#include "member2_cars.h"
-
-// ---------- drawing the screens ----------
+// drawing the screens 
 
 void drawGameOver(RenderWindow& window) {
     drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(0, 0, 0, 200));   // dark layer
@@ -367,13 +353,13 @@ void restartGame() {
 
 // everything that changes in one frame while the game is running
 void updateGame(float dt) {
-    updateSpawning(dt);          // Member 2
-    updateCars(dt);              // Member 2
-    updateScore();               // Member 1
+    updateSpawning(dt);          
+    updateCars(dt);              
+    updateScore();              
     if (checkCollision() == true) {
         triggerGameOver();
     }
-    checkReachedTop();           // Member 1
+    checkReachedTop();          
 }
 
 // read the keyboard
