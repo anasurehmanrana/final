@@ -76,3 +76,101 @@ void drawCenteredText(RenderWindow& window, string words, int size, float y, Col
     text.setPosition(Vector2f(x, y));
     window.draw(text);
 }
+/*
+    MEMBER 1: PLAYER, SCORE, HIGH SCORE FILE, PLAYER + HUD DRAWING
+
+    What to explain:
+     - the player is just two numbers: playerCol and playerRow
+     - movePlayer changes them and uses if statements to stay inside the grid
+     - score goes up by 1 for every new road row we reach
+     - the high score is saved to and read from a text file
+     - drawPlayer and drawHUD only draw, they never change the game
+*/
+
+// put the player at the bottom middle
+void resetPlayer() {
+    playerCol = COLS / 2;
+    playerRow = ROWS - 1;
+}
+
+// move by dx columns and dy rows (for example dy = -1 means one step up)
+void movePlayer(int dx, int dy) {
+    playerCol = playerCol + dx;
+    playerRow = playerRow + dy;
+
+    // don't let the player leave the screen
+    if (playerCol < 0) playerCol = 0;
+    if (playerCol >= COLS) playerCol = COLS - 1;
+    if (playerRow < 0) playerRow = 0;
+    if (playerRow >= ROWS) playerRow = ROWS - 1;
+}
+
+// true if the player is standing on grass
+bool isPlayerInSafeZone() {
+    if (playerRow == 0) return true;
+    if (playerRow == ROWS - 1) return true;
+    if (playerRow == MIDDLE_ROW_1) return true;
+    if (playerRow == MIDDLE_ROW_2) return true;
+    return false;
+}
+
+// +1 point each time we reach a row higher than ever before
+void updateScore() {
+    if (playerRow < highestRowReached) {
+        highestRowReached = playerRow;
+        if (isPlayerInSafeZone() == false) {
+            score = score + 1;
+        }
+    }
+}
+
+// reaching the top row sends the player back to the start so they can go again
+void checkReachedTop() {
+    if (playerRow == 0) {
+        playerRow = ROWS - 1;
+        highestRowReached = ROWS - 1;
+    }
+}
+
+// read the saved best score (if the file doesn't exist yet, it stays 0)
+void loadHighScore() {
+    ifstream file;
+    file.open(HIGH_SCORE_FILE);
+    if (file.is_open() == true) {
+        file >> highScore;
+        file.close();
+    }
+    else {
+        highScore = 0;
+    }
+}
+
+// write the best score to the file
+void saveHighScore() {
+    ofstream file;
+    file.open(HIGH_SCORE_FILE);
+    if (file.is_open() == true) {
+        file << highScore;
+        file.close();
+    }
+}
+void drawPlayer(RenderWindow& window) {
+    float x = playerCol * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
+    float y = playerRow * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
+    drawRect(window, x, y, PLAYER_SIZE, PLAYER_SIZE, Color::Green);
+}
+
+// score and high score at the top left
+void drawHUD(RenderWindow& window) {
+    // show the current score as the best one if we are beating the record
+    int bestToShow = highScore;
+    if (score > highScore) {
+        bestToShow = score;
+    }
+
+    string line = "Score: " + to_string(score) + "   High Score: " + to_string(bestToShow);
+    Text text(font, line, 24);
+    text.setFillColor(Color::White);
+    text.setPosition(Vector2f(15, 10));
+    window.draw(text);
+}
