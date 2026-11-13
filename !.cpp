@@ -1,3 +1,5 @@
+// Lane Dasher - Group 5
+
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <fstream>
@@ -295,4 +297,183 @@ void drawCars(RenderWindow& window) {
             drawRect(window, carX[i], y, CAR_WIDTH, CAR_HEIGHT, Color::Red);
         }
     }
+}
+
+/*
+    LANE DASHER - Mid Evaluation (Group 5)
+    SFML 3
+
+    MEMBER 3: SCREENS, GAME FLOW, KEY INPUT AND THE MAIN LOOP
+
+    The idea: a frog (green square) has to cross roads full of cars.
+    Cars spawn faster and move faster the longer you survive.
+    One hit = game over. The best score is saved in highscore.txt.
+
+    Controls: arrow keys or W A S D to move, P to pause (only on grass),
+              Enter or Space to play again after game over.
+
+    What to explain:
+     - every frame: read keys -> update the game -> draw everything
+     - draw functions only draw, they never change the game
+     - gameState decides which screen we see (playing or game over)
+     - main() just connects Member 1's and Member 2's parts
+
+    Compile only this file (the .h files are included automatically).
+*/
+
+#include "shared.h"
+#include "member1_player.h"
+#include "member2_cars.h"
+
+// ---------- drawing the screens ----------
+
+void drawGameOver(RenderWindow& window) {
+    drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(0, 0, 0, 200));   // dark layer
+    drawCenteredText(window, "GAME OVER", 60, 150, Color::Red);
+    drawCenteredText(window, "Score: " + to_string(score), 40, 250, Color::White);
+    drawCenteredText(window, "High Score: " + to_string(highScore), 40, 320, Color::Yellow);
+    drawCenteredText(window, "Press ENTER to Play Again", 30, 450, Color(200, 200, 200));
+}
+
+void drawPause(RenderWindow& window) {
+    drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(0, 0, 0, 150));
+    drawCenteredText(window, "PAUSED", 60, 250, Color::White);
+}
+
+// ---------- game flow ----------
+
+// the car hit us: save the high score and show the game over screen
+void triggerGameOver() {
+    if (score > highScore) {
+        highScore = score;
+        saveHighScore();
+    }
+    gameState = STATE_GAMEOVER;
+}
+
+// reset everything for a new round
+void restartGame() {
+    resetPlayer();
+    clearCars();
+    gameTime = 0;
+    spawnTimer = 0;
+    difficulty = 1.0f;
+    spawnRate = 1.5f;
+    score = 0;
+    highestRowReached = ROWS - 1;
+    isPaused = false;
+    gameState = STATE_PLAYING;
+}
+
+// everything that changes in one frame while the game is running
+void updateGame(float dt) {
+    updateSpawning(dt);          // Member 2
+    updateCars(dt);              // Member 2
+    updateScore();               // Member 1
+    if (checkCollision() == true) {
+        triggerGameOver();
+    }
+    checkReachedTop();           // Member 1
+}
+
+// read the keyboard
+void handleEvents(RenderWindow& window) {
+    // SFML gives us one event at a time until there are none left
+    while (const optional event = window.pollEvent()) {
+
+        if (event->is<Event::Closed>()) {
+            window.close();
+        }
+
+        const Event::KeyPressed* keyPress = event->getIf<Event::KeyPressed>();
+        if (keyPress != nullptr) {
+            Keyboard::Key key = keyPress->code;
+
+            if (gameState == STATE_GAMEOVER) {
+                // on the game over screen only Enter / Space matter
+                if (key == Keyboard::Key::Enter || key == Keyboard::Key::Space) {
+                    restartGame();
+                }
+            }
+            else {
+                // P toggles pause (we can only pause while standing on grass)
+                if (key == Keyboard::Key::P) {
+                    if (isPaused == true) {
+                        isPaused = false;
+                    }
+                    else if (isPlayerInSafeZone() == true) {
+                        isPaused = true;
+                    }
+                }
+
+                // movement (ignored while paused)
+                if (isPaused == false) {
+                    if (key == Keyboard::Key::Up || key == Keyboard::Key::W) {
+                        movePlayer(0, -1);
+                    }
+                    else if (key == Keyboard::Key::Down || key == Keyboard::Key::S) {
+                        movePlayer(0, 1);
+                    }
+                    else if (key == Keyboard::Key::Left || key == Keyboard::Key::A) {
+                        movePlayer(-1, 0);
+                    }
+                    else if (key == Keyboard::Key::Right || key == Keyboard::Key::D) {
+                        movePlayer(1, 0);
+                    }
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    srand(time(NULL));    // so the cars are different every time we play
+
+    RenderWindow window(VideoMode(Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT)), "Lane Dasher");
+    window.setFramerateLimit(60);
+
+    // text needs a font file
+    if (font.openFromFile("arial.ttf") == false) {
+        if (font.openFromFile("C:/Windows/Fonts/arial.ttf") == false) {
+            cout << "Could not find a font. Put arial.ttf next to the program." << endl;
+            return 1;
+        }
+    }
+
+    // set everything up once
+    setupLanes();
+    clearCars();
+    resetPlayer();
+    loadHighScore();
+
+    Clock gameClock;
+
+    // the main game loop: runs until the window is closed
+    while (window.isOpen() == true) {
+        float dt = gameClock.restart().asSeconds();   // seconds since the last frame
+
+        handleEvents(window);
+
+        if (gameState == STATE_PLAYING && isPaused == false) {
+            updateGame(dt);
+        }
+
+        // draw (always in this order: back to front)
+        drawBackground(window);     // Member 2
+        drawCars(window);           // Member 2
+        drawPlayer(window);         // Member 1
+        drawHUD(window);            // Member 1
+
+        if (gameState == STATE_GAMEOVER) {
+            drawGameOver(window);
+        }
+        else if (isPaused == true) {
+            drawPause(window);
+        }
+
+        window.display();
+    }
+
+    saveHighScore();
+    return 0;
 }
