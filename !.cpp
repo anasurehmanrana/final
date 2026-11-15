@@ -11,6 +11,7 @@
 using namespace std;
 using namespace sf;
 
+
 // SHARED CONSTANTS AND VARIABLES
 
 const int WINDOW_WIDTH = 800;
@@ -24,8 +25,8 @@ const int MIDDLE_ROW_1 = ROWS / 2 - 1;          // row 5
 const int MIDDLE_ROW_2 = ROWS / 2;              // row 6
 
 const int PLAYER_SIZE = 40;
-const int CAR_WIDTH = 60;
-const int CAR_HEIGHT = 35;
+const int CAR_WIDTH = 105;
+const int CAR_HEIGHT = 46;
 const int MAX_CARS = 40;                        // the car arrays have this many slots
 const int NUM_LANES = 8;                        // 12 rows - 4 grass rows = 8 road lanes
 
@@ -59,6 +60,10 @@ int highScore = 0;
 int highestRowReached = ROWS - 1;   // so we only give points for NEW rows
 
 Font font;
+
+// ADD THESE LINES:
+Texture carTexture;
+Color carColors[MAX_CARS]; // Gives each car a random paint job!
 
 // small drawing helpers
 
@@ -213,6 +218,16 @@ void spawnCar() {
 
             // random speed between 100 and 250, plus more as difficulty grows
             carSpeed[i] = 100 + rand() % 151 + 50 * difficulty;
+            Color palette[5] = {
+    Color::White,               // Original texture color
+    Color(220, 50, 50),         // Sports Red
+    Color(50, 130, 230),        // Electric Blue
+    Color(240, 190, 40),        // Taxi / Muscle Yellow
+    Color(180, 180, 190)        // Metallic Silver
+            };
+            carColors[i] = palette[rand() % 5];
+
+            carActive[i] = true;
 
             carActive[i] = true;
             return; // we placed one car, stop looking
@@ -252,8 +267,7 @@ void updateCars(float dt) {
         }
     }
 }
-
-// true if any car touches the player
+ 
 bool checkCollision() {
     // the player's rectangle (top-left corner + size)
     float playerLeft = playerCol * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
@@ -277,6 +291,7 @@ bool checkCollision() {
     return false;
 }
 
+
 // gray road everywhere, then green grass on the 4 safe rows
 void drawBackground(RenderWindow& window) {
     window.clear(Color(50, 50, 50));
@@ -287,14 +302,42 @@ void drawBackground(RenderWindow& window) {
     drawRect(window, 0, WINDOW_HEIGHT - GRID_SIZE, WINDOW_WIDTH, GRID_SIZE, grass); // bottom
 }
 
+// Draw all active high-resolution car sprites with shadows
 void drawCars(RenderWindow& window) {
+    Vector2u texSize = carTexture.getSize();
+
     for (int i = 0; i < MAX_CARS; i++) {
         if (carActive[i] == true) {
+            float x = carX[i];
             float y = carRow[i] * GRID_SIZE + (GRID_SIZE - CAR_HEIGHT) / 2.0f;
-            drawRect(window, carX[i], y, CAR_WIDTH, CAR_HEIGHT, Color::Red);
+
+            Sprite carSprite(carTexture);
+            carSprite.setOrigin(Vector2f(texSize.x / 2.0f, texSize.y / 2.0f));
+            // 2. Rotate 90 degrees clockwise when moving right (1), or -90 degrees when moving left (-1)
+            carSprite.setRotation(degrees(90.f * carDir[i]));
+
+            float baseScale = (float)CAR_HEIGHT / texSize.x;
+            float widthScale = baseScale * 1.6f;   // Controls car width (top-to-bottom in lane)
+            float lengthScale = baseScale * 2.6f;  // Controls car length (bumper-to-bumper, ~2x width!)
+            carSprite.setScale(Vector2f(widthScale,lengthScale));
+
+            float centerX = x + CAR_WIDTH / 2.0f;
+            float centerY = y + CAR_HEIGHT / 2.0f;
+
+            // 1. Draw Drop Shadow underneath
+            Sprite shadowSprite = carSprite;
+            shadowSprite.setPosition(Vector2f(centerX + 4.0f, centerY + 6.0f));
+            shadowSprite.setColor(Color(0, 0, 0, 110));
+            window.draw(shadowSprite);
+
+            // 2. Draw High-Detail Car on top
+            carSprite.setPosition(Vector2f(centerX, centerY));
+            carSprite.setColor(carColors[i]);
+            window.draw(carSprite);
         }
     }
 }
+
 
 /*
     SCREENS, GAME FLOW, KEY INPUT AND THE MAIN LOOP
@@ -425,6 +468,11 @@ int main() {
             return 1;
         }
     }
+    if (!carTexture.loadFromFile("car.png")) {
+        cout << "Error: Could not load car.png!" << endl;
+        return -1;
+    }
+    carTexture.setSmooth(true);
 
     // set everything up once
     setupLanes();
