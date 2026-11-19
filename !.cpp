@@ -64,7 +64,7 @@ Font font;
 // ADD THESE LINES:
 Texture carTexture;
 Color carColors[MAX_CARS]; // Gives each car a random paint job!
-
+Texture grassTexture;
 // small drawing helpers
 
 void drawRect(RenderWindow& window, float x, float y, float w, float h, Color color) {
@@ -291,15 +291,24 @@ bool checkCollision() {
     return false;
 }
 
+void drawGrassArea(RenderWindow& window, float y, int width, int height) {
+    float scale = 0.25f;
 
-// gray road everywhere, then green grass on the 4 safe rows
+    Sprite grassSprite(grassTexture);
+    grassSprite.setTextureRect(IntRect({ 0, 0 }, { (int)(width / scale), (int)(height / scale) }));
+    grassSprite.setScale(Vector2f(scale, scale));
+    grassSprite.setPosition(Vector2f(0, y));
+    grassSprite.setColor(Color(210, 230, 210));
+
+    window.draw(grassSprite);
+}
+
 void drawBackground(RenderWindow& window) {
     window.clear(Color(50, 50, 50));
 
-    Color grass(100, 200, 100);
-    drawRect(window, 0, 0, WINDOW_WIDTH, GRID_SIZE, grass); // top
-    drawRect(window, 0, MIDDLE_ROW_1 * GRID_SIZE, WINDOW_WIDTH, GRID_SIZE * 2, grass); // middle (2 rows)
-    drawRect(window, 0, WINDOW_HEIGHT - GRID_SIZE, WINDOW_WIDTH, GRID_SIZE, grass); // bottom
+    drawGrassArea(window, 0, WINDOW_WIDTH, GRID_SIZE);                            // top
+    drawGrassArea(window, MIDDLE_ROW_1 * GRID_SIZE, WINDOW_WIDTH, GRID_SIZE * 2); // middle (2 rows)
+    drawGrassArea(window, WINDOW_HEIGHT - GRID_SIZE, WINDOW_WIDTH, GRID_SIZE);    // bottom
 }
 
 // Draw all active high-resolution car sprites with shadows
@@ -461,6 +470,8 @@ int main() {
     RenderWindow window(VideoMode(Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT)), "Lane Dasher");
     window.setFramerateLimit(60);
 
+    grassTexture.setSmooth(true);
+
     // text needs a font file
     if (font.openFromFile("arial.ttf") == false) {
         if (font.openFromFile("C:/Windows/Fonts/arial.ttf") == false) {
@@ -473,6 +484,11 @@ int main() {
         return -1;
     }
     carTexture.setSmooth(true);
+    if (!grassTexture.loadFromFile("grass.png")) {
+        cout << "Could not find grass.png" << endl;
+        return 1;
+    }
+    grassTexture.setRepeated(true);
 
     // set everything up once
     setupLanes();
