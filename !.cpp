@@ -65,6 +65,8 @@ Font font;
 Texture carTexture;
 Color carColors[MAX_CARS]; // Gives each car a random paint job!
 Texture grassTexture;
+Texture chickenTexture;
+Texture laneTexture;
 // small drawing helpers
 
 void drawRect(RenderWindow& window, float x, float y, float w, float h, Color color) {
@@ -161,9 +163,24 @@ void saveHighScore() {
     }
 }
 void drawPlayer(RenderWindow& window) {
-    float x = playerCol * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
-    float y = playerRow * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
-    drawRect(window, x, y, PLAYER_SIZE, PLAYER_SIZE, Color::Green);
+    // Center of the player's grid cell in pixels
+    float centerX = playerCol * GRID_SIZE + GRID_SIZE / 2.0f;
+    float centerY = playerRow * GRID_SIZE + GRID_SIZE / 2.0f;
+
+    Sprite chickenSprite(chickenTexture);
+
+    // Set origin to the middle of the chicken image
+    Vector2u texSize = chickenTexture.getSize();
+    chickenSprite.setOrigin(Vector2f(texSize.x / 2.0f, texSize.y / 2.0f));
+
+    // Scale to fit nicely inside PLAYER_SIZE (40x40)
+    float scaleX = (float)PLAYER_SIZE / texSize.x;
+    float scaleY = (float)PLAYER_SIZE / texSize.y;
+    float scale = (scaleX < scaleY) ? scaleX : scaleY; // keeps proportions
+    chickenSprite.setScale(Vector2f(scale, scale));
+
+    chickenSprite.setPosition(Vector2f(centerX, centerY));
+    window.draw(chickenSprite);
 }
 
 // score and high score at the top left
@@ -303,8 +320,24 @@ void drawGrassArea(RenderWindow& window, float y, int width, int height) {
     window.draw(grassSprite);
 }
 
+void drawLaneArea(RenderWindow& window, float y, int width, int height) {
+    // Fit 1 image height to 1 grid row (50 pixels = 1 lane)
+    float scale = (float)GRID_SIZE / laneTexture.getSize().y;
+
+    Sprite laneSprite(laneTexture);
+    laneSprite.setTextureRect(IntRect({ 0, 0 }, { (int)(width / scale), (int)(height / scale) }));
+    laneSprite.setScale(Vector2f(scale, scale));
+    laneSprite.setPosition(Vector2f(0, y));
+
+    window.draw(laneSprite);
+}
+
 void drawBackground(RenderWindow& window) {
     window.clear(Color(50, 50, 50));
+
+    // Single-lane road strips (rows 1-4 and rows 7-10)
+    drawLaneArea(window, 1 * GRID_SIZE, WINDOW_WIDTH, GRID_SIZE * 4);
+    drawLaneArea(window, 7 * GRID_SIZE, WINDOW_WIDTH, GRID_SIZE * 4);
 
     drawGrassArea(window, 0, WINDOW_WIDTH, GRID_SIZE);                            // top
     drawGrassArea(window, MIDDLE_ROW_1 * GRID_SIZE, WINDOW_WIDTH, GRID_SIZE * 2); // middle (2 rows)
@@ -489,6 +522,20 @@ int main() {
         return 1;
     }
     grassTexture.setRepeated(true);
+
+    if (!chickenTexture.loadFromFile("chicken.png")) {
+        cout << "Error: Could not load chicken.png!" << endl;
+        return -1;
+    }
+
+    laneTexture.setSmooth(true);
+    if (!laneTexture.loadFromFile("lane.png")) {
+        cout << "Could not find lane.png" << endl;
+        return 1;
+    }
+    laneTexture.setRepeated(true);
+
+    chickenTexture.setSmooth(true);
 
     // set everything up once
     setupLanes();
