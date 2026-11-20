@@ -32,7 +32,10 @@ const int NUM_LANES = 8;                        // 12 rows - 4 grass rows = 8 ro
 
 const int STATE_PLAYING = 0;
 const int STATE_GAMEOVER = 1;
-
+const int STATE_MENU = 2;       // start screen
+const int STATE_HIGHSCORE = 3;  // high score screen
+int gameState = STATE_MENU;     // game starts on the menu
+int selectedOption = 0;         // 0 = Start Game, 1 = High Score, 2 = Quit
 const string HIGH_SCORE_FILE = "highscore.txt";
 
 // player (position is stored as a grid cell, not pixels)
@@ -49,7 +52,6 @@ bool carActive[MAX_CARS];    // false = this slot is empty
 int laneRows[NUM_LANES];     // the row numbers of the road lanes
 
 // game info
-int gameState = STATE_PLAYING;
 bool isPaused = false;
 float gameTime = 0;          // seconds since the game started
 float spawnTimer = 0;        // counts up until it's time for a new car
@@ -397,7 +399,44 @@ void drawCars(RenderWindow& window) {
 */
 
 // drawing the screens 
+// draws the main menu screen
+void drawMenu(RenderWindow& window) {
+    // dark background and title
+    drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(20, 20, 30));
+    drawCenteredText(window, "LANE DASHER", 60, 120, Color::Cyan);
 
+    // option 0: Start Game
+    if (selectedOption == 0) {
+        drawCenteredText(window, "> Start Game", 32, 280, Color::Yellow);
+    }
+    else {
+        drawCenteredText(window, "  Start Game", 32, 280, Color::White);
+    }
+
+    // option 1: High Score
+    if (selectedOption == 1) {
+        drawCenteredText(window, "> High Score", 32, 340, Color::Yellow);
+    }
+    else {
+        drawCenteredText(window, "  High Score", 32, 340, Color::White);
+    }
+
+    // option 2: Quit
+    if (selectedOption == 2) {
+        drawCenteredText(window, "> Quit", 32, 400, Color::Yellow);
+    }
+    else {
+        drawCenteredText(window, "  Quit", 32, 400, Color::White);
+    }
+}
+
+// draws the high score screen
+void drawHighScoreScreen(RenderWindow& window) {
+    drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(20, 20, 30));
+    drawCenteredText(window, "HIGH SCORE", 50, 150, Color::Yellow);
+    drawCenteredText(window, to_string(highScore), 60, 260, Color::White);
+    drawCenteredText(window, "Press ESC to Return to Menu", 24, 450, Color(180, 180, 180));
+}
 void drawGameOver(RenderWindow& window) {
     drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(0, 0, 0, 200));   // dark layer
     drawCenteredText(window, "GAME OVER", 60, 150, Color::Red);
@@ -459,11 +498,48 @@ void handleEvents(RenderWindow& window) {
         const Event::KeyPressed* keyPress = event->getIf<Event::KeyPressed>();
         if (keyPress != nullptr) {
             Keyboard::Key key = keyPress->code;
-
-            if (gameState == STATE_GAMEOVER) {
+            if (gameState == STATE_MENU) {
+                // move selection up and wrap around
+                if (key == Keyboard::Key::Up || key == Keyboard::Key::W) {
+                    selectedOption = selectedOption - 1;
+                    if (selectedOption < 0) {
+                        selectedOption = 2;
+                    }
+                }
+                // move selection down and wrap around
+                else if (key == Keyboard::Key::Down || key == Keyboard::Key::S) {
+                    selectedOption = selectedOption + 1;
+                    if (selectedOption > 2) {
+                        selectedOption = 0;
+                    }
+                }
+                // run selected option on Enter
+                else if (key == Keyboard::Key::Enter) {
+                    if (selectedOption == 0) {
+                        restartGame();
+                    }
+                    else if (selectedOption == 1) {
+                        loadHighScore();
+                        gameState = STATE_HIGHSCORE;
+                    }
+                    else if (selectedOption == 2) {
+                        window.close();
+                    }
+                }
+            }
+            else if (gameState == STATE_HIGHSCORE) {
+                // Esc returns to menu
+                if (key == Keyboard::Key::Escape) {
+                    gameState = STATE_MENU;
+                }
+            }
+            else if (gameState == STATE_GAMEOVER) {
                 // on the game over screen only Enter / Space matter
                 if (key == Keyboard::Key::Enter || key == Keyboard::Key::Space) {
                     restartGame();
+                }
+                else if (key == Keyboard::Key::Escape) {
+                    gameState = STATE_MENU;
                 }
             }
             else {
@@ -556,19 +632,27 @@ int main() {
         }
 
         // draw (always in this order: back to front)
-        drawBackground(window);     // Member 2
-        drawCars(window);           // Member 2
-        drawPlayer(window);         // Member 1
-        drawHUD(window);            // Member 1
-
-        if (gameState == STATE_GAMEOVER) {
-            drawGameOver(window);
+        if (gameState == STATE_MENU) {
+            drawMenu(window);
         }
-        else if (isPaused == true) {
-            drawPause(window);
+        else if (gameState == STATE_HIGHSCORE) {
+            drawHighScoreScreen(window);
         }
+        else {
+            drawBackground(window);     // Member 2
+            drawCars(window);           // Member 2
+            drawPlayer(window);         // Member 1
+            drawHUD(window);            // Member 1
 
+            if (gameState == STATE_GAMEOVER) {
+                drawGameOver(window);
+            }
+            else if (isPaused == true) {
+                drawPause(window);
+            }
+        }
         window.display();
+     
     }
 
     saveHighScore();
