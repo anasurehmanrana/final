@@ -423,6 +423,36 @@ void drawCars(RenderWindow& window) {
 void drawMenu(RenderWindow& window) {
     // dark background and title
     drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(20, 20, 30));
+    drawRect(window, 0, 0, WINDOW_WIDTH, 30, Color(40, 40, 60));
+    drawRect(window, 0, WINDOW_HEIGHT - 30, WINDOW_WIDTH, 30, Color(40, 40, 60));
+    // 2. decorative car sprites on the left and right sides
+    Vector2u carSize = carTexture.getSize();
+
+    Sprite leftCar(carTexture);
+    leftCar.setOrigin(Vector2f(carSize.x / 2.0f, carSize.y / 2.0f));
+    leftCar.setRotation(degrees(90.f));
+    leftCar.setScale(Vector2f(0.22f, 0.35f));
+    leftCar.setColor(Color(220, 50, 50));
+    leftCar.setPosition(Vector2f(170, 365));
+    window.draw(leftCar);
+
+    Sprite rightCar(carTexture);
+    rightCar.setOrigin(Vector2f(carSize.x / 2.0f, carSize.y / 2.0f));
+    rightCar.setRotation(degrees(-90.f));
+    rightCar.setScale(Vector2f(0.22f, 0.35f));
+    rightCar.setColor(Color(50, 130, 230));
+    rightCar.setPosition(Vector2f(WINDOW_WIDTH - 170, 365));
+    window.draw(rightCar);
+
+    // 3. player sprite in the center above the options
+    Vector2u chickSize = chickenTexture.getSize();
+
+    Sprite menuPlayer(chickenTexture);
+    menuPlayer.setOrigin(Vector2f(chickSize.x / 2.0f, chickSize.y / 2.0f));
+    menuPlayer.setScale(Vector2f(0.25f, 0.25f));
+    menuPlayer.setPosition(Vector2f(WINDOW_WIDTH / 2.0f, 225));
+    window.draw(menuPlayer);
+
     drawCenteredText(window, "LANE DASHER", 60, 120, Color::Cyan);
 
     // option 0: Start Game
@@ -448,11 +478,21 @@ void drawMenu(RenderWindow& window) {
     else {
         drawCenteredText(window, "  Quit", 32, 400, Color::White);
     }
+    // 5. simple key hint at the bottom
+    drawCenteredText(window, "Up/Down or W/S to Move   |   Enter to Select", 22, 545, Color(180, 180, 180));
 }
 
 // draws the high score screen
 void drawHighScoreScreen(RenderWindow& window) {
     drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(20, 20, 30));
+    drawRect(window, 0, 0, WINDOW_WIDTH, 30, Color(40, 40, 60));
+    drawRect(window, 0, WINDOW_HEIGHT - 30, WINDOW_WIDTH, 30, Color(40, 40, 60));
+    Vector2u chickSize = chickenTexture.getSize();
+    Sprite trophyPlayer(chickenTexture);
+    trophyPlayer.setOrigin(Vector2f(chickSize.x / 2.0f, chickSize.y / 2.0f));
+    trophyPlayer.setScale(Vector2f(0.22f, 0.22f));
+    trophyPlayer.setPosition(Vector2f(WINDOW_WIDTH / 2.0f, 225));
+    window.draw(trophyPlayer);
     drawCenteredText(window, "HIGH SCORE", 50, 150, Color::Yellow);
     drawCenteredText(window, to_string(highScore), 60, 260, Color::White);
     drawCenteredText(window, "Press ESC to Return to Menu", 24, 450, Color(180, 180, 180));
