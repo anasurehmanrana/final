@@ -1,6 +1,7 @@
 // Lane Dasher - Group 5
 
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -14,11 +15,11 @@ using namespace sf;
 
 // SHARED CONSTANTS AND VARIABLES
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
-const int GRID_SIZE = 50;                       // one cell is 50 x 50 pixels
-const int COLS = WINDOW_WIDTH / GRID_SIZE;      // 16 columns
-const int ROWS = WINDOW_HEIGHT / GRID_SIZE;     // 12 rows
+const int GRID_SIZE = 65;                       // was 50 (makes each lane taller)
+const int WINDOW_WIDTH = 16 * GRID_SIZE;        // 1040 pixels wide
+const int WINDOW_HEIGHT = 12 * GRID_SIZE;       // 780 pixels tall
+const int COLS = WINDOW_WIDTH / GRID_SIZE;      // still 16 columns
+const int ROWS = WINDOW_HEIGHT / GRID_SIZE;     // still 12 rows
 
 // rows 0, 5, 6 and 11 are grass (safe). All other rows are roads.
 const int MIDDLE_ROW_1 = ROWS / 2 - 1;          // row 5
@@ -71,6 +72,23 @@ Texture chickenTexture;
 Texture laneTexture;
 // small drawing helpers
 
+Music bgMusic;
+bool musicLoaded = false;
+
+SoundBuffer jumpBuffer;
+Sound jumpSound(jumpBuffer);
+
+SoundBuffer crashBuffer;
+Sound crashSound(crashBuffer);
+
+SoundBuffer pointBuffer;
+Sound pointSound(pointBuffer);
+
+SoundBuffer selectBuffer;
+Sound selectSound(selectBuffer);
+
+
+
 void drawRect(RenderWindow& window, float x, float y, float w, float h, Color color) {
     RectangleShape rect(Vector2f(w, h));
     rect.setPosition(Vector2f(x, y));
@@ -113,6 +131,7 @@ void movePlayer(int dx, int dy) {
     if (playerCol >= COLS) playerCol = COLS - 1;
     if (playerRow < 0) playerRow = 0;
     if (playerRow >= ROWS) playerRow = ROWS - 1;
+    if (jumpBuffer.getSampleCount() > 0) jumpSound.play();
 }
 
 // true if the player is standing on grass
@@ -137,6 +156,7 @@ void updateScore() {
 // reaching the top row sends the player back to the start so they can go again
 void checkReachedTop() {
     if (playerRow == 0) {
+        if (pointBuffer.getSampleCount() > 0) pointSound.play();
         playerRow = ROWS - 1;
         highestRowReached = ROWS - 1;
     }
@@ -454,6 +474,10 @@ void drawPause(RenderWindow& window) {
 
 // the car hit us: save the high score and show the game over screen
 void triggerGameOver() {
+    if (musicLoaded) {
+        bgMusic.stop();
+    }
+    if (crashBuffer.getSampleCount() > 0) crashSound.play();
     if (score > highScore) {
         highScore = score;
         saveHighScore();
@@ -463,6 +487,9 @@ void triggerGameOver() {
 
 // reset everything for a new round
 void restartGame() {
+    if (musicLoaded) {
+        bgMusic.play();
+    }
     resetPlayer();
     clearCars();
     gameTime = 0;
@@ -505,6 +532,7 @@ void handleEvents(RenderWindow& window) {
                     if (selectedOption < 0) {
                         selectedOption = 2;
                     }
+                    if (selectBuffer.getSampleCount() > 0) selectSound.play();
                 }
                 // move selection down and wrap around
                 else if (key == Keyboard::Key::Down || key == Keyboard::Key::S) {
@@ -512,9 +540,11 @@ void handleEvents(RenderWindow& window) {
                     if (selectedOption > 2) {
                         selectedOption = 0;
                     }
+                    if (selectBuffer.getSampleCount() > 0) selectSound.play();
                 }
                 // run selected option on Enter
                 else if (key == Keyboard::Key::Enter) {
+                    if (selectBuffer.getSampleCount() > 0) selectSound.play();
                     if (selectedOption == 0) {
                         restartGame();
                     }
@@ -581,6 +611,27 @@ int main() {
 
     grassTexture.setSmooth(true);
 
+    if (!jumpBuffer.loadFromFile("jump.wav")) {
+        cout << "Error: Could not load jump.wav!" << endl;
+    }
+    if (!crashBuffer.loadFromFile("crash.wav")) {
+        cout << "Error: Could not load crash.wav!" << endl;
+    }
+    if (!pointBuffer.loadFromFile("point.wav")) {
+        cout << "Error: Could not load point.wav!" << endl;
+    }
+    if (!selectBuffer.loadFromFile("select.wav")) {
+        cout << "Error: Could not load select.wav!" << endl;
+    }
+
+    if (!bgMusic.openFromFile("music.wav")) {
+        cout << "Error: Could not load music.wav!" << endl;
+    }
+    else {
+        bgMusic.setLooping(true);
+        musicLoaded = true;
+    }
+    // set everything up once
     // text needs a font file
     if (font.openFromFile("arial.ttf") == false) {
         if (font.openFromFile("C:/Windows/Fonts/arial.ttf") == false) {
@@ -612,8 +663,8 @@ int main() {
     laneTexture.setRepeated(true);
 
     chickenTexture.setSmooth(true);
-
-    // set everything up once
+   
+   
     setupLanes();
     clearCars();
     resetPlayer();
