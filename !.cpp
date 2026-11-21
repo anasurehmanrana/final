@@ -68,7 +68,7 @@ Font font;
 Texture carTexture;
 Color carColors[MAX_CARS]; // Gives each car a random paint job
 Texture grassTexture;
-Texture chickenTexture;
+Texture frogTexture;
 Texture laneTexture;
 // small drawing helpers
 
@@ -180,27 +180,30 @@ void saveHighScore() {
         file.close();
     }
 }
-void drawPlayer(RenderWindow& window) {
+void drawFrog(RenderWindow& window) {
     // Center of the player's grid cell in pixels
     float centerX = playerCol * GRID_SIZE + GRID_SIZE / 2.0f;
     float centerY = playerRow * GRID_SIZE + GRID_SIZE / 2.0f;
 
-    Sprite chickenSprite(chickenTexture);
+    Sprite frogSprite(frogTexture);
 
-    // Set origin to the middle of the chicken image
-    Vector2u texSize = chickenTexture.getSize();
-    chickenSprite.setOrigin(Vector2f(texSize.x / 2.0f, texSize.y / 2.0f));
+    // Set origin to the middle of the frog image
+    Vector2u texSize = frogTexture.getSize();
+    frogSprite.setOrigin(Vector2f(texSize.x / 2.0f, texSize.y / 2.0f));
 
     // Scale to fit nicely inside PLAYER_SIZE (40x40)
     float scaleX = (float)PLAYER_SIZE / texSize.x;
     float scaleY = (float)PLAYER_SIZE / texSize.y;
     float scale = (scaleX < scaleY) ? scaleX : scaleY; // keeps proportions
-    chickenSprite.setScale(Vector2f(scale, scale));
+    frogSprite.setScale(Vector2f(scale, scale));
 
-    chickenSprite.setPosition(Vector2f(centerX, centerY));
-    window.draw(chickenSprite);
+    frogSprite.setPosition(Vector2f(centerX, centerY));
+    window.draw(frogSprite);
 }
 
+void drawPlayer(RenderWindow& window) {
+    drawFrog(window);
+}
 // score and high score at the top left
 void drawHUD(RenderWindow& window) {
     // show the current score as the best one if we are beating the record
@@ -722,10 +725,11 @@ int main() {
     }
     grassTexture.setRepeated(true);
 
-    if (!chickenTexture.loadFromFile("chicken.png")) {
-        cout << "Error: Could not load chicken.png!" << endl;
+    if (!frogTexture.loadFromFile("frog.png")) {
+        cout << "Error: Could not load frog.png!" << endl;
         return -1;
     }
+    frogTexture.setSmooth(true);
 
     laneTexture.setSmooth(true);
     if (!laneTexture.loadFromFile("lane.png")) {
@@ -733,8 +737,6 @@ int main() {
         return 1;
     }
     laneTexture.setRepeated(true);
-
-    chickenTexture.setSmooth(true);
    
    
     setupLanes();
