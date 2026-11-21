@@ -43,7 +43,7 @@ const string HIGH_SCORE_FILE = "highscore.txt";
 // player (position is stored as a grid cell, not pixels)
 int playerCol;
 int playerRow;
-
+int turboCharges = 0;
 // cars: every car uses the same index in all five arrays
 float carX[MAX_CARS];        // x position in pixels
 int carRow[MAX_CARS];        // which road row it drives on
@@ -139,7 +139,12 @@ void updateScore() {
     if (playerRow < highestRowReached) {
         highestRowReached = playerRow;
         if (isPlayerInSafeZone() == false) {
+            int oldScore = score;
             score = score + 1;
+
+            if ((score / 50) > (oldScore / 50)) {
+                turboCharges = turboCharges + 1;
+            }
         }
     }
 }
@@ -204,7 +209,7 @@ void drawHUD(RenderWindow& window) {
         bestToShow = score;
     }
 
-    string line = "Score: " + to_string(score) + "   High Score: " + to_string(bestToShow);
+    string line = "Score: " + to_string(score) + "   High Score: " + to_string(bestToShow) + "   Turbo [Space]: " + to_string(turboCharges);
     Text text(font, line, 24);
     text.setFillColor(Color::White);
     text.setPosition(Vector2f(15, 10));
@@ -512,6 +517,7 @@ void triggerGameOver() {
 
 // reset everything for a new round
 void restartGame() {
+    turboCharges = 0;
     if (musicLoaded) {
         bgMusic.play();
     }
@@ -650,6 +656,18 @@ void handleEvents(RenderWindow& window) {
                     }
                     else if (key == Keyboard::Key::Right || key == Keyboard::Key::D) {
                         movePlayer(1, 0);
+                    }
+                    else if (key == Keyboard::Key::Space) {
+                        if (turboCharges > 0) {
+                            turboCharges = turboCharges - 1;
+                            if (playerRow > MIDDLE_ROW_2) {
+                                movePlayer(0, -5);
+                            }
+                            else {
+                                movePlayer(0, -6);
+                            }
+                            if (pointBuffer.getSampleCount() > 0) pointSound.play();
+                        }
                     }
                 }
             }
