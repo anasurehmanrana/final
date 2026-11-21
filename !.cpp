@@ -37,6 +37,7 @@ const int STATE_MENU = 2;       // start screen
 const int STATE_HIGHSCORE = 3;  // high score screen
 int gameState = STATE_MENU;     // game starts on the menu
 int selectedOption = 0;         // 0 = Start Game, 1 = High Score, 2 = Quit
+int gameOverOption = 0;         // 0 = Play Again, 1 = Main Menu, 2 = Exit
 const string HIGH_SCORE_FILE = "highscore.txt";
 
 // player (position is stored as a grid cell, not pixels)
@@ -498,11 +499,35 @@ void drawHighScoreScreen(RenderWindow& window) {
     drawCenteredText(window, "Press ESC to Return to Menu", 24, 450, Color(180, 180, 180));
 }
 void drawGameOver(RenderWindow& window) {
-    drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(0, 0, 0, 200));   // dark layer
-    drawCenteredText(window, "GAME OVER", 60, 150, Color::Red);
-    drawCenteredText(window, "Score: " + to_string(score), 40, 250, Color::White);
-    drawCenteredText(window, "High Score: " + to_string(highScore), 40, 320, Color::Yellow);
-    drawCenteredText(window, "Press ENTER to Play Again", 30, 450, Color(200, 200, 200));
+    drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(20, 20, 30));
+    drawRect(window, 0, 0, WINDOW_WIDTH, 30, Color(40, 40, 60));
+    drawRect(window, 0, WINDOW_HEIGHT - 30, WINDOW_WIDTH, 30, Color(40, 40, 60));
+
+    drawCenteredText(window, "GAME OVER", 60, 110, Color::Red);
+    drawCenteredText(window, "Score: " + to_string(score) + "   |   High Score: " + to_string(highScore), 28, 195, Color::White);
+
+    if (gameOverOption == 0) {
+        drawCenteredText(window, "> Play Again", 32, 280, Color::Yellow);
+    }
+    else {
+        drawCenteredText(window, "  Play Again", 32, 280, Color::White);
+    }
+
+    if (gameOverOption == 1) {
+        drawCenteredText(window, "> Main Menu", 32, 340, Color::Yellow);
+    }
+    else {
+        drawCenteredText(window, "  Main Menu", 32, 340, Color::White);
+    }
+
+    if (gameOverOption == 2) {
+        drawCenteredText(window, "> Exit", 32, 400, Color::Yellow);
+    }
+    else {
+        drawCenteredText(window, "  Exit", 32, 400, Color::White);
+    }
+
+    drawCenteredText(window, "Up/Down or W/S to Move   |   Enter to Select", 22, 545, Color(180, 180, 180));
 }
 
 void drawPause(RenderWindow& window) {
@@ -522,6 +547,7 @@ void triggerGameOver() {
         highScore = score;
         saveHighScore();
     }
+    gameOverOption = 0;
     gameState = STATE_GAMEOVER;
 }
 
@@ -604,11 +630,40 @@ void handleEvents(RenderWindow& window) {
                 }
             }
             else if (gameState == STATE_GAMEOVER) {
-                // on the game over screen only Enter / Space matter
-                if (key == Keyboard::Key::Enter || key == Keyboard::Key::Space) {
+                if (key == Keyboard::Key::Up || key == Keyboard::Key::W) {
+                    gameOverOption = gameOverOption - 1;
+                    if (gameOverOption < 0) {
+                        gameOverOption = 2;
+                    }
+                    if (selectBuffer.getSampleCount() > 0) selectSound.play();
+                }
+                else if (key == Keyboard::Key::Down || key == Keyboard::Key::S) {
+                    gameOverOption = gameOverOption + 1;
+                    if (gameOverOption > 2) {
+                        gameOverOption = 0;
+                    }
+                    if (selectBuffer.getSampleCount() > 0) selectSound.play();
+                }
+                else if (key == Keyboard::Key::Enter) {
+                    if (selectBuffer.getSampleCount() > 0) selectSound.play();
+                    if (gameOverOption == 0) {
+                        restartGame();
+                    }
+                    else if (gameOverOption == 1) {
+                        selectedOption = 0;
+                        gameState = STATE_MENU;
+                    }
+                    else if (gameOverOption == 2) {
+                        window.close();
+                    }
+                }
+                else if (key == Keyboard::Key::Space) {
+                    if (selectBuffer.getSampleCount() > 0) selectSound.play();
                     restartGame();
                 }
                 else if (key == Keyboard::Key::Escape) {
+                    if (selectBuffer.getSampleCount() > 0) selectSound.play();
+                    selectedOption = 0;
                     gameState = STATE_MENU;
                 }
             }
@@ -729,16 +784,16 @@ int main() {
         else if (gameState == STATE_HIGHSCORE) {
             drawHighScoreScreen(window);
         }
+        else if (gameState == STATE_GAMEOVER) {
+            drawGameOver(window);
+        }
         else {
-            drawBackground(window);     // Member 2
-            drawCars(window);           // Member 2
-            drawPlayer(window);         // Member 1
-            drawHUD(window);            // Member 1
+            drawBackground(window);     
+            drawCars(window);           
+            drawPlayer(window);         
+            drawHUD(window);            
 
-            if (gameState == STATE_GAMEOVER) {
-                drawGameOver(window);
-            }
-            else if (isPaused == true) {
+            if (isPaused == true) {
                 drawPause(window);
             }
         }
