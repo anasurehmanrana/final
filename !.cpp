@@ -65,9 +65,8 @@ int highestRowReached = ROWS - 1;   // so we only give points for NEW rows
 
 Font font;
 
-// ADD THESE LINES:
 Texture carTexture;
-Color carColors[MAX_CARS]; // Gives each car a random paint job!
+Color carColors[MAX_CARS]; // Gives each car a random paint job
 Texture grassTexture;
 Texture chickenTexture;
 Texture laneTexture;
@@ -106,15 +105,6 @@ void drawCenteredText(RenderWindow& window, string words, int size, float y, Col
     text.setPosition(Vector2f(x, y));
     window.draw(text);
 }
-/*
-    PLAYER, SCORE, HIGH SCORE FILE, PLAYER + HUD DRAWING
-    What to explain:
-     - the player is just two numbers: playerCol and playerRow
-     - movePlayer changes them and uses if statements to stay inside the grid
-     - score goes up by 1 for every new road row we reach
-     - the high score is saved to and read from a text file
-     - drawPlayer and drawHUD only draw, they never change the game
-*/
 
 // put the player at the bottom middle
 void resetPlayer() {
@@ -403,22 +393,6 @@ void drawCars(RenderWindow& window) {
     }
 }
 
-
-/*
-    SCREENS, GAME FLOW, KEY INPUT AND THE MAIN LOOP
-
-    The idea: a (green square) has to cross roads full of cars.
-    Cars spawn faster and move faster the longer you survive.
-    One hit = game over. The best score is saved in highscore.txt.
-
-    Controls: arrow keys or W A S D to move, P to pause (only on grass),
-              Enter or Space to play again after game over.
-
-     - every frame: read keys -> update the game -> draw everything
-     - draw functions only draw, they never change the game
-     - gameState decides which screen we see (playing or game over)
-*/
-
 // drawing the screens 
 // draws the main menu screen
 void drawMenu(RenderWindow& window) {
@@ -535,8 +509,6 @@ void drawPause(RenderWindow& window) {
     drawCenteredText(window, "PAUSED", 60, 250, Color::White);
 }
 
-// ---------- game flow ----------
-
 // the car hit us: save the high score and show the game over screen
 void triggerGameOver() {
     if (musicLoaded) {
@@ -581,7 +553,7 @@ void updateGame(float dt) {
 
 // read the keyboard
 void handleEvents(RenderWindow& window) {
-    // SFML gives us one event at a time until there are none left
+
     while (const optional event = window.pollEvent()) {
 
         if (event->is<Event::Closed>()) {
