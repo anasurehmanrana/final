@@ -15,7 +15,7 @@ using namespace sf;
 
 // SHARED CONSTANTS AND VARIABLES
 
-const int GRID_SIZE = 65;                       // was 50 (makes each lane taller)
+const int GRID_SIZE = 65;                      
 const int WINDOW_WIDTH = 16 * GRID_SIZE;        // 1040 pixels wide
 const int WINDOW_HEIGHT = 12 * GRID_SIZE;       // 780 pixels tall
 const int COLS = WINDOW_WIDTH / GRID_SIZE;      // still 16 columns
@@ -60,6 +60,7 @@ float spawnTimer = 0;        // counts up until it's time for a new car
 float difficulty = 1.0f;     // grows with time
 float spawnRate = 1.5f;      // seconds between cars, gets smaller with time
 int score = 0;
+int laps = 0;
 int highScore = 0;
 int highestRowReached = ROWS - 1;   // so we only give points for NEW rows
 
@@ -70,7 +71,6 @@ Color carColors[MAX_CARS]; // Gives each car a random paint job
 Texture grassTexture;
 Texture frogTexture;
 Texture laneTexture;
-// small drawing helpers
 
 Music bgMusic;
 bool musicLoaded = false;
@@ -88,16 +88,18 @@ SoundBuffer selectBuffer;
 Sound selectSound(selectBuffer);
 
 
-
-void drawRect(RenderWindow& window, float x, float y, float w, float h, Color color) {
+// Draws a colored box at position (x, y) with width w and height h.
+void drawRect(RenderWindow& window, float x, float y, float w, float h, Color color)
+{
     RectangleShape rect(Vector2f(w, h));
     rect.setPosition(Vector2f(x, y));
     rect.setFillColor(color);
     window.draw(rect);
 }
 
-// text in the horizontal middle of the window
-void drawCenteredText(RenderWindow& window, string words, int size, float y, Color color) {
+// Prints text centered horizontally at height y on the screen.
+void drawCenteredText(RenderWindow& window, string words, int size, float y, Color color)
+{
     Text text(font, words, size);
     text.setFillColor(color);
     FloatRect bounds = text.getGlobalBounds();
@@ -106,14 +108,16 @@ void drawCenteredText(RenderWindow& window, string words, int size, float y, Col
     window.draw(text);
 }
 
-// put the player at the bottom middle
-void resetPlayer() {
+// Puts the player back at the bottom middle of the grid.
+void resetPlayer()
+{
     playerCol = COLS / 2;
     playerRow = ROWS - 1;
 }
 
-// move by dx columns and dy rows (for example dy = -1 means one step up)
-void movePlayer(int dx, int dy) {
+// Moves the player by dx columns and dy rows, keeps them inside the screen, and plays jump sound.
+void movePlayer(int dx, int dy)
+{
     playerCol = playerCol + dx;
     playerRow = playerRow + dy;
 
@@ -125,8 +129,9 @@ void movePlayer(int dx, int dy) {
     if (jumpBuffer.getSampleCount() > 0) jumpSound.play();
 }
 
-// true if the player is standing on grass
-bool isPlayerInSafeZone() {
+// Returns true if the player is standing on a safe grass row.
+bool isPlayerInSafeZone() 
+{
     if (playerRow == 0) return true;
     if (playerRow == ROWS - 1) return true;
     if (playerRow == MIDDLE_ROW_1) return true;
@@ -134,53 +139,68 @@ bool isPlayerInSafeZone() {
     return false;
 }
 
-// +1 point each time we reach a row higher than ever before
-void updateScore() {
-    if (playerRow < highestRowReached) {
+// Adds 1 point when the player moves up to a new higher road row, and gives 1 turbo every 50 points.
+void updateScore()
+{
+    if (playerRow < highestRowReached) 
+    {
         highestRowReached = playerRow;
-        if (isPlayerInSafeZone() == false) {
+        if (isPlayerInSafeZone() == false)
+        {
             int oldScore = score;
             score = score + 1;
 
-            if ((score / 50) > (oldScore / 50)) {
+            if ((score / 50) > (oldScore / 50)) 
+            {
                 turboCharges = turboCharges + 1;
             }
         }
     }
 }
 
-// reaching the top row sends the player back to the start so they can go again
-void checkReachedTop() {
-    if (playerRow == 0) {
+// Counts +1 lap when reaching the top row, plays the point sound, and sends the player back to the bottom.
+void checkReachedTop()
+{
+    if (playerRow == 0)
+    {
         if (pointBuffer.getSampleCount() > 0) pointSound.play();
         playerRow = ROWS - 1;
+        laps++;
         highestRowReached = ROWS - 1;
     }
 }
 
-// read the saved best score (if the file doesn't exist yet, it stays 0)
-void loadHighScore() {
+// Reads the saved high score from the file, or sets it to 0 if no file exists yet.
+void loadHighScore()
+{
     ifstream file;
     file.open(HIGH_SCORE_FILE);
-    if (file.is_open() == true) {
+    if (file.is_open() == true)
+    {
         file >> highScore;
         file.close();
     }
-    else {
+    else
+    {
         highScore = 0;
     }
 }
 
-// write the best score to the file
-void saveHighScore() {
+// Saves the current highScore to the file.
+void saveHighScore()
+{
     ofstream file;
     file.open(HIGH_SCORE_FILE);
-    if (file.is_open() == true) {
+    if (file.is_open() == true)
+    {
         file << highScore;
         file.close();
     }
 }
-void drawFrog(RenderWindow& window) {
+
+// Draws the frog sprite at the player's current grid cell, scaled to fit.
+void drawFrog(RenderWindow& window)
+{
     // Center of the player's grid cell in pixels
     float centerX = playerCol * GRID_SIZE + GRID_SIZE / 2.0f;
     float centerY = playerRow * GRID_SIZE + GRID_SIZE / 2.0f;
@@ -201,71 +221,87 @@ void drawFrog(RenderWindow& window) {
     window.draw(frogSprite);
 }
 
-void drawPlayer(RenderWindow& window) {
+// Calls drawFrog() to draw the player.
+void drawPlayer(RenderWindow& window)
+{
     drawFrog(window);
 }
-// score and high score at the top left
-void drawHUD(RenderWindow& window) {
+
+// Shows Score, Laps, High Score, and Turbo count at the top-left of the screen.
+void drawHUD(RenderWindow& window)
+{
     // show the current score as the best one if we are beating the record
     int bestToShow = highScore;
-    if (score > highScore) {
+    if (score > highScore)
+    {
         bestToShow = score;
     }
 
-    string line = "Score: " + to_string(score) + "   High Score: " + to_string(bestToShow) + "   Turbo [Space]: " + to_string(turboCharges);
+    string line = "Score: " + to_string(score) + "   Laps: " + to_string(laps) + "   High Score: " + to_string(bestToShow) + "   Turbo [Space]: " + to_string(turboCharges);
     Text text(font, line, 24);
     text.setFillColor(Color::White);
     text.setPosition(Vector2f(15, 10));
     window.draw(text);
 }
 
-// work out which rows are roads and store them in laneRows[]
-void setupLanes() {
+// Finds which rows are roads and saves them in laneRows[].
+void setupLanes() 
+{
     int count = 0;
-    for (int r = 1; r < ROWS - 1; r++) {
-        if (r != MIDDLE_ROW_1 && r != MIDDLE_ROW_2) {
+    for (int r = 1; r < ROWS - 1; r++)
+    {
+        if (r != MIDDLE_ROW_1 && r != MIDDLE_ROW_2)
+        {
             laneRows[count] = r;
             count++;
         }
     }
 }
-// make every car slot empty
-void clearCars() {
-    for (int i = 0; i < MAX_CARS; i++) {
+
+// Turns off all car slots so the array starts empty
+void clearCars()
+{
+    for (int i = 0; i < MAX_CARS; i++)
+    {
         carActive[i] = false;
     }
 }
-// add one new car on a random lane
-void spawnCar() {
+
+// Finds an empty car slot and creates a new car on a random lane with random speed and color.
+void spawnCar()
+{
     // look for the first empty slot
-    for (int i = 0; i < MAX_CARS; i++) {
-        if (carActive[i] == false) {
+    for (int i = 0; i < MAX_CARS; i++)
+    {
+        if (carActive[i] == false)
+        {
 
             int row = laneRows[rand() % NUM_LANES];
             carRow[i] = row;
 
             // cars in the same lane all drive the same way (even rows right, odd rows left)
-            if (row % 2 == 0) {
+            if (row % 2 == 0) 
+            {
                 carDir[i] = 1;
                 carX[i] = -CAR_WIDTH; // starts just outside the left edge
             }
-            else {
+            else 
+            {
                 carDir[i] = -1;
                 carX[i] = WINDOW_WIDTH; // starts just outside the right edge
             }
 
             // random speed between 100 and 250, plus more as difficulty grows
             carSpeed[i] = 100 + rand() % 151 + 50 * difficulty;
-            Color palette[5] = {
-    Color::White,               // Original texture color
-    Color(220, 50, 50),         // Sports Red
-    Color(50, 130, 230),        // Electric Blue
-    Color(240, 190, 40),        // Taxi / Muscle Yellow
-    Color(180, 180, 190)        // Metallic Silver
+            Color palette[5] = 
+            {
+                Color::White,               // Original texture color
+                Color(220, 50, 50),         // Sports Red
+                Color(50, 130, 230),        // Electric Blue
+                Color(240, 190, 40),        // Taxi / Muscle Yellow
+                Color(180, 180, 190)        // Metallic Silver
             };
             carColors[i] = palette[rand() % 5];
-
-            carActive[i] = true;
 
             carActive[i] = true;
             return; // we placed one car, stop looking
@@ -273,46 +309,58 @@ void spawnCar() {
     }
 }
 
-// gets harder over time and spawns cars when the timer runs out
-void updateSpawning(float dt) {
+// Increases difficulty over time and spawns a new car whenever spawnTimer hits spawnRate.
+void updateSpawning(float dt)
+{
     gameTime = gameTime + dt;
     difficulty = 1.0f + gameTime / 10.0f;
 
     spawnRate = 1.5f - gameTime / 20.0f;
-    if (spawnRate < 0.3f) {
+    if (spawnRate < 0.3f)
+    {
         spawnRate = 0.3f; // never faster than one car every 0.3 s
     }
 
     spawnTimer = spawnTimer + dt;
-    if (spawnTimer >= spawnRate) {
+    if (spawnTimer >= spawnRate)
+    {
         spawnTimer = 0;
         spawnCar();
     }
 }
 
-// move every active car and free the ones that left the screen
-void updateCars(float dt) {
-    for (int i = 0; i < MAX_CARS; i++) {
-        if (carActive[i] == true) {
+// Moves every active car across the screen and turns it off once it goes past the edge.
+void updateCars(float dt)
+{
+    for (int i = 0; i < MAX_CARS; i++)
+    {
+        if (carActive[i] == true)
+        {
             carX[i] = carX[i] + carSpeed[i] * carDir[i] * dt;
 
-            if (carDir[i] == 1 && carX[i] > WINDOW_WIDTH) {
+            if (carDir[i] == 1 && carX[i] > WINDOW_WIDTH)
+            {
                 carActive[i] = false;
             }
-            if (carDir[i] == -1 && carX[i] < -CAR_WIDTH) {
+            if (carDir[i] == -1 && carX[i] < -CAR_WIDTH)
+            {
                 carActive[i] = false;
             }
         }
     }
 }
  
-bool checkCollision() {
+// Checks if the player's box overlaps any active car's box; returns true if hit.
+bool checkCollision()
+{
     // the player's rectangle (top-left corner + size)
     float playerLeft = playerCol * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
     float playerTop = playerRow * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
 
-    for (int i = 0; i < MAX_CARS; i++) {
-        if (carActive[i] == true) {
+    for (int i = 0; i < MAX_CARS; i++) 
+    {
+        if (carActive[i] == true)
+        {
             // the car's rectangle
             float carLeft = carX[i];
             float carTop = carRow[i] * GRID_SIZE + (GRID_SIZE - CAR_HEIGHT) / 2.0f;
@@ -321,7 +369,8 @@ bool checkCollision() {
             bool overlapX = playerLeft < carLeft + CAR_WIDTH && playerLeft + PLAYER_SIZE > carLeft;
             bool overlapY = playerTop < carTop + CAR_HEIGHT && playerTop + PLAYER_SIZE > carTop;
 
-            if (overlapX == true && overlapY == true) {
+            if (overlapX == true && overlapY == true)
+            {
                 return true;
             }
         }
@@ -329,7 +378,9 @@ bool checkCollision() {
     return false;
 }
 
-void drawGrassArea(RenderWindow& window, float y, int width, int height) {
+// Repeats the grass image across a horizontal strip
+void drawGrassArea(RenderWindow& window, float y, int width, int height)
+{
     float scale = 0.25f;
 
     Sprite grassSprite(grassTexture);
@@ -341,8 +392,10 @@ void drawGrassArea(RenderWindow& window, float y, int width, int height) {
     window.draw(grassSprite);
 }
 
-void drawLaneArea(RenderWindow& window, float y, int width, int height) {
-    // Fit 1 image height to 1 grid row (50 pixels = 1 lane)
+// Repeats the road lane image across a horizontal strip.
+void drawLaneArea(RenderWindow& window, float y, int width, int height) 
+{
+    // Fit 1 image height to 1 grid row.
     float scale = (float)GRID_SIZE / laneTexture.getSize().y;
 
     Sprite laneSprite(laneTexture);
@@ -353,7 +406,9 @@ void drawLaneArea(RenderWindow& window, float y, int width, int height) {
     window.draw(laneSprite);
 }
 
-void drawBackground(RenderWindow& window) {
+// Clears the screen and draws all road lanes and grass areas.
+void drawBackground(RenderWindow& window) 
+{
     window.clear(Color(50, 50, 50));
 
     // Single-lane road strips (rows 1-4 and rows 7-10)
@@ -365,12 +420,15 @@ void drawBackground(RenderWindow& window) {
     drawGrassArea(window, WINDOW_HEIGHT - GRID_SIZE, WINDOW_WIDTH, GRID_SIZE);    // bottom
 }
 
-// Draw all active high-resolution car sprites with shadows
-void drawCars(RenderWindow& window) {
+// Draws each active car rotated in its travel direction, with a dark shadow underneath.
+void drawCars(RenderWindow& window) 
+{
     Vector2u texSize = carTexture.getSize();
 
-    for (int i = 0; i < MAX_CARS; i++) {
-        if (carActive[i] == true) {
+    for (int i = 0; i < MAX_CARS; i++)
+    {
+        if (carActive[i] == true) 
+        {
             float x = carX[i];
             float y = carRow[i] * GRID_SIZE + (GRID_SIZE - CAR_HEIGHT) / 2.0f;
 
@@ -387,13 +445,13 @@ void drawCars(RenderWindow& window) {
             float centerX = x + CAR_WIDTH / 2.0f;
             float centerY = y + CAR_HEIGHT / 2.0f;
 
-            // 1. Draw Drop Shadow underneath
+            // Draw Drop Shadow underneath
             Sprite shadowSprite = carSprite;
             shadowSprite.setPosition(Vector2f(centerX + 4.0f, centerY + 6.0f));
             shadowSprite.setColor(Color(0, 0, 0, 110));
             window.draw(shadowSprite);
 
-            // 2. Draw High-Detail Car on top
+            // Draw High-Detail Car on top
             carSprite.setPosition(Vector2f(centerX, centerY));
             carSprite.setColor(carColors[i]);
             window.draw(carSprite);
@@ -401,14 +459,14 @@ void drawCars(RenderWindow& window) {
     }
 }
 
-// drawing the screens 
-// draws the main menu screen
-void drawMenu(RenderWindow& window) {
+// Draws the main menu screen with Start Game, High Score, and Quit options.
+void drawMenu(RenderWindow& window) 
+{
     // dark background and title
     drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(20, 20, 30));
     drawRect(window, 0, 0, WINDOW_WIDTH, 30, Color(40, 40, 60));
     drawRect(window, 0, WINDOW_HEIGHT - 30, WINDOW_WIDTH, 30, Color(40, 40, 60));
-    // 2. decorative car sprites on the left and right sides
+    // decorative car sprites on the left and right sides
     Vector2u carSize = carTexture.getSize();
 
     Sprite leftCar(carTexture);
@@ -430,34 +488,41 @@ void drawMenu(RenderWindow& window) {
     drawCenteredText(window, "LANE DASHER", 60, 120, Color::Cyan);
 
     // option 0: Start Game
-    if (selectedOption == 0) {
+    if (selectedOption == 0)
+    {
         drawCenteredText(window, "> Start Game", 32, 280, Color::Yellow);
     }
-    else {
+    else
+    {
         drawCenteredText(window, "  Start Game", 32, 280, Color::White);
     }
 
     // option 1: High Score
-    if (selectedOption == 1) {
+    if (selectedOption == 1) 
+    {
         drawCenteredText(window, "> High Score", 32, 340, Color::Yellow);
     }
-    else {
+    else 
+    {
         drawCenteredText(window, "  High Score", 32, 340, Color::White);
     }
 
     // option 2: Quit
-    if (selectedOption == 2) {
+    if (selectedOption == 2) 
+    {
         drawCenteredText(window, "> Quit", 32, 400, Color::Yellow);
     }
-    else {
+    else 
+    {
         drawCenteredText(window, "  Quit", 32, 400, Color::White);
     }
-    // 5. simple key hint at the bottom
+    // simple key hint at the bottom
     drawCenteredText(window, "Up/Down or W/S to Move   |   Enter to Select", 22, 545, Color(180, 180, 180));
 }
 
-// draws the high score screen
-void drawHighScoreScreen(RenderWindow& window) {
+// Draws the High Score screen.
+void drawHighScoreScreen(RenderWindow& window)
+{
     drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(20, 20, 30));
     drawRect(window, 0, 0, WINDOW_WIDTH, 30, Color(40, 40, 60));
     drawRect(window, 0, WINDOW_HEIGHT - 30, WINDOW_WIDTH, 30, Color(40, 40, 60));
@@ -467,50 +532,62 @@ void drawHighScoreScreen(RenderWindow& window) {
     drawCenteredText(window, to_string(highScore), 60, 260, Color::White);
     drawCenteredText(window, "Press ESC to Return to Menu", 24, 450, Color(180, 180, 180));
 }
-void drawGameOver(RenderWindow& window) {
+
+// Draws the Game Over screen with final score, laps, high score, and restart/menu options.
+void drawGameOver(RenderWindow& window)
+{
     drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(20, 20, 30));
     drawRect(window, 0, 0, WINDOW_WIDTH, 30, Color(40, 40, 60));
     drawRect(window, 0, WINDOW_HEIGHT - 30, WINDOW_WIDTH, 30, Color(40, 40, 60));
 
-    drawCenteredText(window, "GAME OVER", 60, 110, Color::Red);
-    drawCenteredText(window, "Score: " + to_string(score) + "   |   High Score: " + to_string(highScore), 28, 195, Color::White);
-
-    if (gameOverOption == 0) {
+    drawCenteredText(window, "GAME OVER", 60, 110, Color::Red);drawCenteredText(window, "Score: " + to_string(score) + "   |   Laps: " + to_string(laps) + "   |   High Score: " + to_string(highScore), 28, 195, Color::White);
+    if (gameOverOption == 0)
+    {
         drawCenteredText(window, "> Play Again", 32, 280, Color::Yellow);
     }
-    else {
+    else
+    {
         drawCenteredText(window, "  Play Again", 32, 280, Color::White);
     }
 
-    if (gameOverOption == 1) {
+    if (gameOverOption == 1)
+    {
         drawCenteredText(window, "> Main Menu", 32, 340, Color::Yellow);
     }
-    else {
+    else
+    {
         drawCenteredText(window, "  Main Menu", 32, 340, Color::White);
     }
 
-    if (gameOverOption == 2) {
+    if (gameOverOption == 2) 
+    {
         drawCenteredText(window, "> Exit", 32, 400, Color::Yellow);
     }
-    else {
+    else
+    {
         drawCenteredText(window, "  Exit", 32, 400, Color::White);
     }
 
     drawCenteredText(window, "Up/Down or W/S to Move   |   Enter to Select", 22, 545, Color(180, 180, 180));
 }
 
-void drawPause(RenderWindow& window) {
+// Dims the screen and shows "PAUSED" when the game is paused.
+void drawPause(RenderWindow& window)
+{
     drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(0, 0, 0, 150));
     drawCenteredText(window, "PAUSED", 60, 250, Color::White);
 }
 
-// the car hit us: save the high score and show the game over screen
-void triggerGameOver() {
-    if (musicLoaded) {
+// Stops music, plays crash sound, updates/saves high score if beaten, and opens Game Over screen.
+void triggerGameOver()
+{
+    if (musicLoaded)
+    {
         bgMusic.stop();
     }
     if (crashBuffer.getSampleCount() > 0) crashSound.play();
-    if (score > highScore) {
+    if (score > highScore)
+    {
         highScore = score;
         saveHighScore();
     }
@@ -518,10 +595,12 @@ void triggerGameOver() {
     gameState = STATE_GAMEOVER;
 }
 
-// reset everything for a new round
-void restartGame() {
+// Resets score, laps, turbo, timer, cars, and player position to start a fresh game.
+void restartGame()
+{
     turboCharges = 0;
-    if (musicLoaded) {
+    if (musicLoaded)
+    {
         bgMusic.play();
     }
     resetPlayer();
@@ -531,142 +610,182 @@ void restartGame() {
     difficulty = 1.0f;
     spawnRate = 1.5f;
     score = 0;
+    laps = 0;
     highestRowReached = ROWS - 1;
     isPaused = false;
     gameState = STATE_PLAYING;
 }
 
-// everything that changes in one frame while the game is running
-void updateGame(float dt) {
+// Updates spawning, car movement, score, collisions, and top-row laps for one frame.
+void updateGame(float dt)
+{
     updateSpawning(dt);          
     updateCars(dt);              
     updateScore();              
-    if (checkCollision() == true) {
+    if (checkCollision() == true)
+    {
         triggerGameOver();
     }
     checkReachedTop();          
 }
 
-// read the keyboard
+// Handles closing the window and pressing keys on menus, pause, movement, and turbo.
 void handleEvents(RenderWindow& window) {
 
-    while (const optional event = window.pollEvent()) {
+    while (const optional event = window.pollEvent()) 
+    {
 
-        if (event->is<Event::Closed>()) {
+        if (event->is<Event::Closed>())
+        {
             window.close();
         }
 
         const Event::KeyPressed* keyPress = event->getIf<Event::KeyPressed>();
-        if (keyPress != nullptr) {
+        if (keyPress != nullptr)
+        {
             Keyboard::Key key = keyPress->code;
-            if (gameState == STATE_MENU) {
+            if (gameState == STATE_MENU) 
+            {
                 // move selection up and wrap around
-                if (key == Keyboard::Key::Up || key == Keyboard::Key::W) {
+                if (key == Keyboard::Key::Up || key == Keyboard::Key::W) 
+                {
                     selectedOption = selectedOption - 1;
-                    if (selectedOption < 0) {
+                    if (selectedOption < 0)
+                    {
                         selectedOption = 2;
                     }
                     if (selectBuffer.getSampleCount() > 0) selectSound.play();
                 }
                 // move selection down and wrap around
-                else if (key == Keyboard::Key::Down || key == Keyboard::Key::S) {
+                else if (key == Keyboard::Key::Down || key == Keyboard::Key::S)
+                {
                     selectedOption = selectedOption + 1;
-                    if (selectedOption > 2) {
+                    if (selectedOption > 2)
+                    {
                         selectedOption = 0;
                     }
                     if (selectBuffer.getSampleCount() > 0) selectSound.play();
                 }
                 // run selected option on Enter
-                else if (key == Keyboard::Key::Enter) {
+                else if (key == Keyboard::Key::Enter)
+                {
                     if (selectBuffer.getSampleCount() > 0) selectSound.play();
-                    if (selectedOption == 0) {
+                    if (selectedOption == 0)
+                    {
                         restartGame();
                     }
-                    else if (selectedOption == 1) {
+                    else if (selectedOption == 1)
+                    {
                         loadHighScore();
                         gameState = STATE_HIGHSCORE;
                     }
-                    else if (selectedOption == 2) {
+                    else if (selectedOption == 2)
+                    {
                         window.close();
                     }
                 }
             }
-            else if (gameState == STATE_HIGHSCORE) {
+            else if (gameState == STATE_HIGHSCORE)
+            {
                 // Esc returns to menu
-                if (key == Keyboard::Key::Escape) {
+                if (key == Keyboard::Key::Escape)
+                {
                     gameState = STATE_MENU;
                 }
             }
-            else if (gameState == STATE_GAMEOVER) {
-                if (key == Keyboard::Key::Up || key == Keyboard::Key::W) {
+            else if (gameState == STATE_GAMEOVER)
+            {
+                if (key == Keyboard::Key::Up || key == Keyboard::Key::W)
+                {
                     gameOverOption = gameOverOption - 1;
-                    if (gameOverOption < 0) {
+                    if (gameOverOption < 0)
+                    {
                         gameOverOption = 2;
                     }
                     if (selectBuffer.getSampleCount() > 0) selectSound.play();
                 }
-                else if (key == Keyboard::Key::Down || key == Keyboard::Key::S) {
+                else if (key == Keyboard::Key::Down || key == Keyboard::Key::S)
+                {
                     gameOverOption = gameOverOption + 1;
-                    if (gameOverOption > 2) {
+                    if (gameOverOption > 2)
+                    {
                         gameOverOption = 0;
                     }
                     if (selectBuffer.getSampleCount() > 0) selectSound.play();
                 }
-                else if (key == Keyboard::Key::Enter) {
+                else if (key == Keyboard::Key::Enter)
+                {
                     if (selectBuffer.getSampleCount() > 0) selectSound.play();
                     if (gameOverOption == 0) {
                         restartGame();
                     }
-                    else if (gameOverOption == 1) {
+                    else if (gameOverOption == 1)
+                    {
                         selectedOption = 0;
                         gameState = STATE_MENU;
                     }
-                    else if (gameOverOption == 2) {
+                    else if (gameOverOption == 2)
+                    {
                         window.close();
                     }
                 }
-                else if (key == Keyboard::Key::Space) {
+                else if (key == Keyboard::Key::Space) 
+                {
                     if (selectBuffer.getSampleCount() > 0) selectSound.play();
                     restartGame();
                 }
-                else if (key == Keyboard::Key::Escape) {
+                else if (key == Keyboard::Key::Escape)
+                {
                     if (selectBuffer.getSampleCount() > 0) selectSound.play();
                     selectedOption = 0;
                     gameState = STATE_MENU;
                 }
             }
-            else {
+            else
+            {
                 // P toggles pause (we can only pause while standing on grass)
-                if (key == Keyboard::Key::P) {
-                    if (isPaused == true) {
+                if (key == Keyboard::Key::P)
+                {
+                    if (isPaused == true)
+                    {
                         isPaused = false;
                     }
-                    else if (isPlayerInSafeZone() == true) {
+                    else if (isPlayerInSafeZone() == true)
+                    {
                         isPaused = true;
                     }
                 }
 
                 // movement (ignored while paused)
-                if (isPaused == false) {
-                    if (key == Keyboard::Key::Up || key == Keyboard::Key::W) {
+                if (isPaused == false)
+                {
+                    if (key == Keyboard::Key::Up || key == Keyboard::Key::W)
+                    {
                         movePlayer(0, -1);
                     }
-                    else if (key == Keyboard::Key::Down || key == Keyboard::Key::S) {
+                    else if (key == Keyboard::Key::Down || key == Keyboard::Key::S)
+                    {
                         movePlayer(0, 1);
                     }
-                    else if (key == Keyboard::Key::Left || key == Keyboard::Key::A) {
+                    else if (key == Keyboard::Key::Left || key == Keyboard::Key::A)
+                    {
                         movePlayer(-1, 0);
                     }
-                    else if (key == Keyboard::Key::Right || key == Keyboard::Key::D) {
+                    else if (key == Keyboard::Key::Right || key == Keyboard::Key::D)
+                    {
                         movePlayer(1, 0);
                     }
-                    else if (key == Keyboard::Key::Space) {
-                        if (turboCharges > 0) {
+                    else if (key == Keyboard::Key::Space)
+                    {
+                        if (turboCharges > 0)
+                        {
                             turboCharges = turboCharges - 1;
-                            if (playerRow > MIDDLE_ROW_2) {
+                            if (playerRow > MIDDLE_ROW_2)
+                            {
                                 movePlayer(0, -5);
                             }
-                            else {
+                            else
+                            {
                                 movePlayer(0, -6);
                             }
                             if (pointBuffer.getSampleCount() > 0) pointSound.play();
@@ -678,7 +797,9 @@ void handleEvents(RenderWindow& window) {
     }
 }
 
-int main() {
+// Sets up game assets, runs the main game loop, and saves the high score when closing.
+int main()
+{
     srand(time(NULL));    // so the cars are different every time we play
 
     RenderWindow window(VideoMode(Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT)), "Lane Dasher");
@@ -686,53 +807,65 @@ int main() {
 
     grassTexture.setSmooth(true);
 
-    if (!jumpBuffer.loadFromFile("jump.wav")) {
+    if (!jumpBuffer.loadFromFile("jump.wav"))
+    {
         cout << "Error: Could not load jump.wav!" << endl;
     }
-    if (!crashBuffer.loadFromFile("crash.wav")) {
+    if (!crashBuffer.loadFromFile("crash.wav"))
+    {
         cout << "Error: Could not load crash.wav!" << endl;
     }
-    if (!pointBuffer.loadFromFile("point.wav")) {
+    if (!pointBuffer.loadFromFile("point.wav")) 
+    {
         cout << "Error: Could not load point.wav!" << endl;
     }
-    if (!selectBuffer.loadFromFile("select.wav")) {
+    if (!selectBuffer.loadFromFile("select.wav")) 
+    {
         cout << "Error: Could not load select.wav!" << endl;
     }
 
-    if (!bgMusic.openFromFile("music.wav")) {
+    if (!bgMusic.openFromFile("music.wav"))
+    {
         cout << "Error: Could not load music.wav!" << endl;
     }
-    else {
+    else 
+    {
         bgMusic.setLooping(true);
         musicLoaded = true;
     }
-    // set everything up once
+
     // text needs a font file
-    if (font.openFromFile("arial.ttf") == false) {
-        if (font.openFromFile("C:/Windows/Fonts/arial.ttf") == false) {
+    if (font.openFromFile("arial.ttf") == false)
+    {
+        if (font.openFromFile("C:/Windows/Fonts/arial.ttf") == false) 
+        {
             cout << "Could not find a font. Put arial.ttf next to the program." << endl;
             return 1;
         }
     }
-    if (!carTexture.loadFromFile("car.png")) {
+    if (!carTexture.loadFromFile("car.png"))
+    {
         cout << "Error: Could not load car.png!" << endl;
         return -1;
     }
     carTexture.setSmooth(true);
-    if (!grassTexture.loadFromFile("grass.png")) {
+    if (!grassTexture.loadFromFile("grass.png"))
+    {
         cout << "Could not find grass.png" << endl;
         return 1;
     }
     grassTexture.setRepeated(true);
 
-    if (!frogTexture.loadFromFile("frog.png")) {
+    if (!frogTexture.loadFromFile("frog.png"))
+    {
         cout << "Error: Could not load frog.png!" << endl;
         return -1;
     }
     frogTexture.setSmooth(true);
 
     laneTexture.setSmooth(true);
-    if (!laneTexture.loadFromFile("lane.png")) {
+    if (!laneTexture.loadFromFile("lane.png"))
+    {
         cout << "Could not find lane.png" << endl;
         return 1;
     }
@@ -747,32 +880,39 @@ int main() {
     Clock gameClock;
 
     // the main game loop: runs until the window is closed
-    while (window.isOpen() == true) {
+    while (window.isOpen() == true)
+    {
         float dt = gameClock.restart().asSeconds();   // seconds since the last frame
 
         handleEvents(window);
 
-        if (gameState == STATE_PLAYING && isPaused == false) {
+        if (gameState == STATE_PLAYING && isPaused == false)
+        {
             updateGame(dt);
         }
 
         // draw (always in this order: back to front)
-        if (gameState == STATE_MENU) {
+        if (gameState == STATE_MENU)
+        {
             drawMenu(window);
         }
-        else if (gameState == STATE_HIGHSCORE) {
+        else if (gameState == STATE_HIGHSCORE)
+        {
             drawHighScoreScreen(window);
         }
-        else if (gameState == STATE_GAMEOVER) {
+        else if (gameState == STATE_GAMEOVER)
+        {
             drawGameOver(window);
         }
-        else {
+        else
+        {
             drawBackground(window);     
             drawCars(window);           
             drawPlayer(window);         
             drawHUD(window);            
 
-            if (isPaused == true) {
+            if (isPaused == true)
+            {
                 drawPause(window);
             }
         }
