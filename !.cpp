@@ -55,6 +55,7 @@ int laneRows[NUM_LANES];     // the row numbers of the road lanes
 
 // game info
 bool isPaused = false;
+bool usedTurbo = false;
 float gameTime = 0;          // seconds since the game started
 float spawnTimer = 0;        // counts up until it's time for a new car
 float difficulty = 1.0f;     // grows with time
@@ -139,23 +140,32 @@ bool isPlayerInSafeZone()
     return false;
 }
 
-// Adds 1 point when the player moves up to a new higher road row, and gives 1 turbo every 50 points.
+// Adds 1 point for a new road row, or a fixed 10 points when using Turbo.
 void updateScore()
 {
-    if (playerRow < highestRowReached) 
+    if (playerRow < highestRowReached)
     {
         highestRowReached = playerRow;
-        // Only give points on road rows so players can't farm score on grass
-        if (isPlayerInSafeZone() == false)
+        int oldScore = score;
+        if (usedTurbo == true)
         {
-            int oldScore = score;
-            score = score + 1;
-            // Integer division jumps whenever score crosses 50, 100, 150, etc.
-            if ((score / 50) > (oldScore / 50)) 
-            {
-                turboCharges = turboCharges + 1;
-            }
+            score = score + 10;
+            usedTurbo = false;
         }
+        else if (isPlayerInSafeZone() == false)
+        {
+            // Only give points on road rows so players can't farm score on grass
+            score = score + 1;
+        }
+        // Integer division jumps whenever score crosses 50, 100, 150, etc.
+        if ((score / 50) > (oldScore / 50))
+        {
+            turboCharges = turboCharges + 1;
+        }
+    }
+    else
+    {
+        usedTurbo = false;
     }
 }
 
@@ -778,18 +788,21 @@ void handleEvents(RenderWindow& window) {
                     }
                     else if (key == Keyboard::Key::Space)
                     {
-                        if (turboCharges > 0)
+                        if (turboCharges > 0 && playerRow > 0)
                         {
-                            turboCharges = turboCharges - 1;
-                            // Jump 5 rows from bottom half, or 6 rows from middle/top half
+                            int targetRow = 0;
                             if (playerRow > MIDDLE_ROW_2)
                             {
-                                movePlayer(0, -5);
+                                targetRow = MIDDLE_ROW_2; // bottom half -> middle safe zone (row 6)
                             }
                             else
                             {
-                                movePlayer(0, -6);
+                                targetRow = 0; // middle safe zone -> top safe zone (row 0)
                             }
+
+                            turboCharges = turboCharges - 1;
+                            usedTurbo = true;
+                            movePlayer(0, targetRow - playerRow);
                             if (pointBuffer.getSampleCount() > 0) pointSound.play();
                         }
                     }
