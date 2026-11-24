@@ -145,11 +145,12 @@ void updateScore()
     if (playerRow < highestRowReached) 
     {
         highestRowReached = playerRow;
+        // Only give points on road rows so players can't farm score on grass
         if (isPlayerInSafeZone() == false)
         {
             int oldScore = score;
             score = score + 1;
-
+            // Integer division jumps whenever score crosses 50, 100, 150, etc.
             if ((score / 50) > (oldScore / 50)) 
             {
                 turboCharges = turboCharges + 1;
@@ -279,7 +280,7 @@ void spawnCar()
             int row = laneRows[rand() % NUM_LANES];
             carRow[i] = row;
 
-            // cars in the same lane all drive the same way (even rows right, odd rows left)
+            // Even rows go right, odd rows go left so opposite lanes don't look identical
             if (row % 2 == 0) 
             {
                 carDir[i] = 1;
@@ -353,7 +354,7 @@ void updateCars(float dt)
 // Checks if the player's box overlaps any active car's box; returns true if hit.
 bool checkCollision()
 {
-    // the player's rectangle (top-left corner + size)
+    // Center the smaller hitbox inside the grid cell so near-misses feel fair
     float playerLeft = playerCol * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
     float playerTop = playerRow * GRID_SIZE + (GRID_SIZE - PLAYER_SIZE) / 2.0f;
 
@@ -526,7 +527,7 @@ void drawHighScoreScreen(RenderWindow& window)
     drawRect(window, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, Color(20, 20, 30));
     drawRect(window, 0, 0, WINDOW_WIDTH, 30, Color(40, 40, 60));
     drawRect(window, 0, WINDOW_HEIGHT - 30, WINDOW_WIDTH, 30, Color(40, 40, 60));
-    // 2. clean accent bar behind the high score value
+    // clean accent bar behind the high score value
     drawRect(window, WINDOW_WIDTH / 2.0f - 180, 240, 360, 95, Color(35, 35, 52));
     drawCenteredText(window, "HIGH SCORE", 50, 150, Color::Yellow);
     drawCenteredText(window, to_string(highScore), 60, 260, Color::White);
@@ -780,6 +781,7 @@ void handleEvents(RenderWindow& window) {
                         if (turboCharges > 0)
                         {
                             turboCharges = turboCharges - 1;
+                            // Jump 5 rows from bottom half, or 6 rows from middle/top half
                             if (playerRow > MIDDLE_ROW_2)
                             {
                                 movePlayer(0, -5);
